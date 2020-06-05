@@ -42,13 +42,21 @@ trips %>% mutate(date = as.Date(starttime)) %>%
 
 
 # plot the total number of trips (on the y axis) by age (on the x axis) and gender (indicated with color)
-trips %>% mutate(age = 2020 - birth_year) %>% 
+trips %>% mutate(age = 2014 - birth_year) %>% 
   ggplot(aes( x = age, fill = gender )) + 
   geom_bar(position = "identity", alpha = .5)
 
 # plot the ratio of male to female trips (on the y axis) by age (on the x axis)
 # hint: use the spread() function to reshape things to make it easier to compute this ratio
 # (you can skip this and come back to it tomorrow if we haven't covered spread() yet)
+
+  trips %>% select(gender,age) %>% 
+    group_by(gender,age) %>% 
+    summarise(count=n()) %>% 
+    pivot_wider(names_from = gender, values_from = count) %>% 
+    mutate(ratio = Male/Female) %>% 
+    ggplot(aes(age, ratio)) + 
+    geom_point()
 
 ########################################
 # plot weather data
@@ -59,7 +67,10 @@ weather %>% ggplot(aes(x = date, y = tmin)) + geom_point()
 # plot the minimum temperature and maximum temperature (on the y axis, with different colors) over each day (on the x axis)
 # hint: try using the gather() function for this to reshape things before plotting
 # (you can skip this and come back to it tomorrow if we haven't covered gather() yet)
-
+  
+  weather %>% select(ymd, tmax, tmin) %>% pivot_longer(names_to = "max_min", values_to = "temp", 2:3) %>% ggplot(aes(x=ymd, y=temp, color = max_min)) + geom_point()
+  
+  
 ########################################
 # plot trip and weather data
 ########################################
@@ -70,6 +81,7 @@ trips_with_weather <- inner_join(trips, weather, by="ymd")
 # plot the number of trips as a function of the minimum temperature, where each point represents a day
 # you'll need to summarize the trips and join to the weather data to do this
 
+  
 
 # repeat this, splitting results by whether there was substantial precipitation or not
 # you'll need to decide what constitutes "substantial precipitation" and create a new T/F column to indicate this
