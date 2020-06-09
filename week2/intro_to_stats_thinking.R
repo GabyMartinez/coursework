@@ -1,3 +1,5 @@
+library(tinyverse)
+
 #Chapter 4
 
 #4.1
@@ -94,3 +96,44 @@
     qnorm(.9, 630, 61)
 
 
+
+#Chapter 9
+#9.1
+
+#1. What is the sample average of the change in score between the patient’s
+#   rating before the application of the device and the rating after the application?
+    summary(magnets)
+#   change is the difference b/ the patient's rating
+
+#2. Is the variable “active” a factor or a numeric variable?
+    summary(magnets)
+    #active
+    #"1":29
+    #"2":21
+
+#3. Compute the average value of the variable “change” for the patients that
+#   received and active magnet and average value for those that received an
+#   inactive placebo.
+    mean(magnets$change[1:29])
+    mean(magnets$change[30:50])
+    #mean(df$col[interval])
+
+#4. Compute the sample standard deviation of the variable “change” for the
+#   patients that received and active magnet and the sample standard deviation for those that received an inactive placebo.
+    sd(magnets$change[1:29])
+    #ditto from the mean question
+    #sd() = standard devation
+
+#5. Produce a boxplot of the variable “change” for the patients that received
+#   and active magnet and for patients that received an inactive placebo.
+#   What is the number of outliers in each subsequence?
+    boxplot(magnets$change[1:29]) #<- would this be a geom
+    boxplot(magnets$change[30:50])
+
+#    ggplot(magnets) + geom_boxplot() <- would have to filter first I think
+
+
+
+
+
+  
