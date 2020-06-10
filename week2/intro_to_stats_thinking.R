@@ -48,7 +48,7 @@ library(tinyverse)
 #4.2
 #One invests $2 to participate in a game of chance. 
 #In this game a coin is tossed three times. 
-#If all tosses end up “Head” then the player wins
+#If all tosses end up Heads then the player wins
 #$10. Otherwise, the player losses the investment.
 
 #1. What is the probability of winning the game?
@@ -77,7 +77,9 @@ library(tinyverse)
 # 9 ppl , SD(9) = 61kg, mean(9) = 630kg
 
 #1. P(x>650kg) given 8 ppl
-    1 - pnorm(650,560,57)
+    #pnorm(650) = p(x<=650)
+    #1-p(x<=650) = p(x>650)
+    1 - pnorm(650,560,57) 
 
 #2. P(x>650kg) given 9ppl
     # pnorm(compare, mean, sd)
@@ -87,7 +89,9 @@ library(tinyverse)
     #interval from 10% percentile to 90% percentile
     # qnorm(%, mean, sd)
     qnorm(0.1,560,57)
+    #^ 10% to the left
     qnorm(0.9,560,57)
+    #^ 90% to the left
 
 #4. What is the central region that contains 80% of distribution of the total weight of 9 people?
     #interval from 10% percentile to 90% percentile
@@ -96,6 +100,53 @@ library(tinyverse)
     qnorm(.9, 630, 61)
 
 
+#Chapter 7
+#7.1
+
+pop.2 <- read.csv("pop2.csv")
+
+#1. Compute the population average of the variable bmi.
+
+    #mean(df$col)
+    mean(pop.2$bmi)
+    select(pop.2,bmi) %>% summarize(mean(bmi))
+
+#2. Compute the population standard deviation of the variable bmi.
+    
+    sd(pop.2$bmi)
+
+#3. Compute the expectation of the sampling distribution for the sample average of the variable.
+    
+    #take a sample n=150
+    X.bar <- rep(0,10^5)
+    for(i in 1:10^5){ #repeat 10^5 = 1mil
+        X.samp <- sample(pop.2$bmi,150) #x.samp = sample
+        X.bar[i] <- mean(X.samp) #x.bar = mean for each sample taken
+    }
+    mean(X.bar) #mean of all sample means
+
+#4. Compute the standard deviation of the sampling distribution for the sample average of the variable.
+    
+    #standard error = standard deviation/sqrt(n)
+    #we have a sample distribution so just take the sd of that
+    
+    sd(X.bar)
+    
+
+#5. Identify, using simulations, the central region that contains 80% of the
+#   sampling distribution of the sample average.
+    
+    quantile(X.bar,c(0.1,0.9)) #use on a sample
+    #10%      90% 
+    #24.54491 25.42006 
+
+#6. Identify, using the Central Limit Theorem, an approximation of the central region that contains 80% of the sampling distribution of the sample
+#   average.
+    #use qnorm for use on a normal distribution
+    qnorm(.9, 24.98281, 0.341563) #25.42054
+    qnorm(.1, 24.98281, 0.341563) #24.54508
+    #see that the numbers are slightly different
+    
 
 #Chapter 9
 #9.1
@@ -133,7 +184,33 @@ library(tinyverse)
 #    ggplot(magnets) + geom_boxplot() <- would have to filter first I think
 
 
-
+#Chapter 10
+#10.1
+#The goal of this exercise is to repeat the analysis, but this time compare the average to the
+#median as estimators of the expectation in symmetric distributions.
+    #1. Simulate the sampling distribution of average and the median of a sample
+    #   of size n = 100 from the Normal(3, 2) distribution. Compute the expectation and the variance of the sample average and of the sample median.
+    #   Which of the two estimators has a smaller mean square error?
+    
+    mu = 3
+    sd = sqrt(2)
+    x.bar <- rep(0,10^5)
+    x.med <- rep(0,10^5)
+    
+    for(i in 1:10^5)
+        {
+            X <- rnorm(100,mu,sd)
+            x.bar[i] <- mean(X)
+            x.med[i] <- median(X)
+    }
+    mean(x.bar) #2.999497
+    median(x.med) #2.999149
+    #minimize var
+    var(x.bar) #0.01991833 <- mean is closest to mu
+    var(x.med) #0.0308587
+    
+    
+    
 
 
   
