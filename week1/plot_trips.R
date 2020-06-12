@@ -84,8 +84,8 @@ weather %>% ggplot(aes(x = date, y = tmin)) + geom_point()
 # plot the number of trips as a function of the minimum temperature, where each point represents a day
 # you'll need to summarize the trips and join to the weather data to do this
 
-  trips_with_weather %>% group_by(tmin) %>% summarize(count=n()) -> temp
-  ggplot(temp, aes(x=tmin, y=count)) + geom_point()
+  #trips_with_weather %>% group_by(tmin) %>% summarize(count=n()) -> temp
+  #ggplot(temp, aes(x=tmin, y=count)) + geom_point()
   
   trips_with_weather %>% group_by(ymd) %>% summarise(count=n()) -> temp
   trips_days <- left_join(temp, weather, by="ymd")
