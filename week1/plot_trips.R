@@ -87,6 +87,10 @@ weather %>% ggplot(aes(x = date, y = tmin)) + geom_point()
   trips_with_weather %>% group_by(tmin) %>% summarize(count=n()) -> temp
   ggplot(temp, aes(x=tmin, y=count)) + geom_point()
   
+  trips_with_weather %>% group_by(ymd) %>% summarise(count=n()) -> temp
+  trips_days <- left_join(temp, weather, by="ymd")
+  ggplot(trips_days, aes(x=tmin, y=count)) + geom_point()
+  
 
 # repeat this, splitting results by whether there was substantial precipitation or not
 # you'll need to decide what constitutes "substantial precipitation" and create a new T/F column to indicate this
