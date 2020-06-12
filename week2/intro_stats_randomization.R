@@ -117,7 +117,7 @@
             #given that the model says that a new born would be 105 cm in height and a 1yr old would be 139cm
             #or 4ft 5in, this model would not be appropriate to predicting the height of a 1yr old.
             
-#5.9
+#5.29
 
     #(a) Describe the relationship between height and weight.
 
