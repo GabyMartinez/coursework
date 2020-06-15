@@ -180,7 +180,12 @@ temp2 %>% group_by(percent100) %>%
   ggplot()+
   geom_line(aes(x= percent100, y=percent100satisfied))+
   scale_y_continuous(breaks = c(.2,.4, .6, .8, 1.0))
-#-> temp100
+
+#temp100
+temp2 %>% group_by(percent100) %>% 
+  summarise(num_of_users100 = n()) %>% 
+  mutate(percent100satisfied = cumsum(num_of_users100)/sum(num_of_users100)) ->
+  temp100
   
 #90% satisfaction
 temp2 %>% group_by(percent90) %>%
@@ -190,7 +195,10 @@ temp2 %>% group_by(percent90) %>%
   geom_line(aes(x=percent90, y=percent90satisfied))+
   scale_y_continuous(breaks = c(.2,.4, .6, .8, 1.0))
 
-#-> temp90
+#temp90
+temp2 %>% group_by(percent90) %>%
+  summarise(num_of_users90 = n())%>%
+  mutate(percent90satisfied = cumsum(num_of_users90)/sum(num_of_users90), percent90full = ceiling(percent90))-> temp90
 
 #trying to get the two lines on the same graph
 #full_join(temp100, temp90, by = c('percent100'='percent90full')) -> temp 
@@ -203,9 +211,11 @@ temp2 %>% group_by(percent90) %>%
   
 #left_join(temp100, temp90) -> 
   
-
-
-
+left_join(temp100, temp2) %>% 
+  left_join(temp90, by=c('percent90'='percent90')) %>%
+  ggplot() +
+  geom_line(aes(x=percent90,y=percent90satisfied))+
+  geom_line(aes(x=percent100, y=percent100satisfied))
 
   
 #quantile(rank,.9)
