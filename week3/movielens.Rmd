@@ -32,9 +32,10 @@ head(ratings) %>% kable()
 ```
 
 # Summary statistics
-
+plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-social-data-lecture-2-introduction-to-counting?slide=26
 ```{r dist-ratings}
-# plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-social-data-lecture-2-introduction-to-counting?slide=26
+
+
 ```
 
 ## Per-movie stats
