@@ -35,6 +35,10 @@ head(ratings) %>% kable()
 plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-social-data-lecture-2-introduction-to-counting?slide=26
 ```{r dist-ratings}
 
+ratings %>% ggplot(aes(x=rating)) + 
+  geom_bar() +
+  ylab('Number of ratings') +
+  scale_y_continuous(label=comma)
 
 ```
 
@@ -43,16 +47,45 @@ plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-
 ```{r aggregate-by-movie}
 # aggregate ratings by movie, computing mean and number of ratings
 # hint: use the n() function for easy counting within a group
+
+  ratings %>% select(movie_id,rating) %>% 
+    group_by(movie_id) %>% 
+    summarize(count = n(), mean_rating = mean(rating)) -> 
+    aggregate_ratings
+  
+#  aggregate_ratings %>% ggplot() + 
+#    geom_line(aes(x = movie_id, y = mean_rating))
+
 ```
 
 ```{r dist-movie-popularity}
 # plot distribution of movie popularity (= number of ratings the movie received)
 # hint: try scale_x_log10() for a logarithmic x axis
+
+  ratings %>%  
+    group_by(movie_id) %>% 
+    summarize(rating_count = n(), mean_rating = mean(rating))%>%
+    ggplot() + geom_histogram(aes(x=rating_count)) +
+    scale_x_log10() +
+    ylab('Number of movies')
+
+#
+
 ```
 
 ```{r dist-mean-ratings-by-movie}
 # plot distribution of mean ratings by movie https://speakerdeck.com/jhofman/modeling-social-data-lecture-2-introduction-to-counting?slide=28
 # hint: try geom_histogram and geom_density
+
+  aggregate_ratings %>% 
+    ggplot() +
+    geom_histogram(aes(x=mean_rating))
+
+   aggregate_ratings %>% 
+    ggplot() +
+    geom_density(aes(x=mean_rating), color = "grey", fill = "grey")
+
+
 ```
 
 ```{r cdf-movie-pop}
@@ -61,6 +94,20 @@ plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-
 # store the result in a new data frame so you can use it in creating figure 2 from the paper below
 
 # plot the CDF of movie popularity
+#CDF = cumsum/sum
+
+  ratings %>% 
+    group_by(movie_id) %>% 
+    summarize(num_of_ratings = n()) %>%
+    arrange(desc(num_of_ratings)) %>%
+    mutate(rank = rank(desc(num_of_ratings)), cumsum = cumsum(num_of_ratings)/sum(num_of_ratings)) -> CDF
+
+  CDF %>% ggplot() +
+    geom_line(aes(x=rank, y=cumsum)) +
+    scale_y_continuous(labels = scales::percent) +
+    ylab("CDF") +
+    xlab("Movie Rank")
+
 ```
 
 
@@ -68,11 +115,25 @@ plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-
 
 ```{r aggregate-by-user}
 # aggregate ratings by user, computing mean and number of ratings
+
+  ratings %>% group_by(user_id) %>% 
+    summarize(rating_count = n(), mean_rating = mean(rating)) -> 
+    aggregate_by_user
+
 ```
 
 ```{r dist-user-activity}
 # plot distribution of user activity (= number of ratings the user made)
 # hint: try a log scale here
+
+ratings %>%  
+    group_by(user_id) %>% 
+    summarize(rating_count = n(), mean_rating = mean(rating)) %>%
+    ggplot() +
+    geom_histogram(aes(x=rating_count)) +
+    scale_x_log10() +
+    ylab("Number of Users")
+
 ```
 
 # Anatomy of the long tail
@@ -90,4 +151,68 @@ plot the distribution of rating values https://speakerdeck.com/jhofman/modeling-
 # paper, produce one curve for the 100% user satisfaction level and
 # another for 90%---do not, however, bother implementing the null
 # model (shown in the dashed lines).
+
+#x = movie rank
+#y = cumsum(num of users)/total sum of users
+
+longtail <- left_join(CDF, ratings)
+  
+longtail %>% 
+  group_by(user_id) %>% 
+  summarise(ratings_by_user_count = n()) %>%
+  filter(ratings_by_user_count >= 10) -> temp
+
+longtail <- left_join(longtail, temp)
+
+longtail %>% 
+  group_by(user_id) %>%
+  mutate(percent100 = max(rank))
+
+longtail %>% group_by(user_id) %>% 
+  summarise(percent100 = max(rank), percent90 = quantile(rank, .9)) -> temp2
+
+#temp2 <- left_join(temp2, longtail)
+
+#100 percent satisfaction 
+temp2 %>% group_by(percent100) %>% 
+  summarise(num_of_users100 = n()) %>% 
+  mutate(percent100satisfied = cumsum(num_of_users100)/sum(num_of_users100)) %>%
+  ggplot()+
+  geom_line(aes(x= percent100, y=percent100satisfied))+
+  scale_y_continuous(breaks = c(.2,.4, .6, .8, 1.0))
+#-> temp100
+  
+#90% satisfaction
+temp2 %>% group_by(percent90) %>%
+  summarise(num_of_users90 = n())%>%
+  mutate(percent90satisfied = cumsum(num_of_users90)/sum(num_of_users90), percent90full = ceiling(percent90)) %>%
+  ggplot() +
+  geom_line(aes(x=percent90, y=percent90satisfied))+
+  scale_y_continuous(breaks = c(.2,.4, .6, .8, 1.0))
+
+#-> temp90
+
+#trying to get the two lines on the same graph
+#full_join(temp100, temp90, by = c('percent100'='percent90full')) -> temp 
+
+#temp %>%
+#  ggplot() +
+#  geom_line(aes(x=percent90, y=percent90satisfied)) +
+#  geom_line(aes(x=percent100, y=percent100satisfied))
+  
+  
+#left_join(temp100, temp90) -> 
+  
+
+
+
+
+  
+#quantile(rank,.9)
+#quantile(longtail$rank,.9)
+
+  
+  
+
+
 ```
