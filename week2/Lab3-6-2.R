@@ -79,7 +79,7 @@ body_data %>% group_by(height, weight) %>% summarise(count=n()) %>% ggplot(aes(x
   #(b) Interpret the slope in this context, and calculate the predicted birth weight of babies born to
   #  smoker and non-smoker mothers.
   
-      #If the mother is a non-smoker, the baby is predicted to weigh 123.05 kg.
+      #If the mother is a non-smoker, the baby is predicted to weigh 123.05 oz.
       #If the mother is a smoker, the baby is predicted to weigh 8.94 less that a baby
       #who's mother is a non smoker. 
 
@@ -87,4 +87,36 @@ body_data %>% group_by(height, weight) %>% summarise(count=n()) %>% ggplot(aes(x
   
       #pvalue = 0.000 < 0.05
       #Yes, the pvalue is less than 0.05
+  
+#6.2
+  #Another variable we consider is parity, which is 0 if the child is the first born, and 1 otherwise.
+  #The summary table below shows the results of a linear regression model for predicting the average
+  #birth weight of babies, measured in ounces, from parity.
+  
+  model_parity = lm(weight ~ parity, baby_data)
+  summary(model_parity)
+  
+  #(a) Write the equation of the regression line.
+  
+      #weight = 129.7390 - 4.2953*(parity)
+  
+  #(b) Interpret the slope in this context, and calculate the predicted birth weight of first borns and
+  #    others.
+  
+      #If the baby is the first born, the predicted weight would be 129.73 ounces.
+      #If the baby is not the first born, it is predicted that they would weigh 4.29 oz less than a first born child.
+  
+  #(c) Is there a statistically significant relationship between the average birth weight and parity?
+  
+      #From my regression the pvalue is 0.00185 < 0.05 which would be statistically significant.
+      #The book example pvalue is 0.1052 > 0.05 which would not be statistically significant. 
+      #In that case, we cannot reject the possibility that there is no effect of parity on the weight of newborns.
+  
+  
+
+  
+  
+  
+  
+  
   
