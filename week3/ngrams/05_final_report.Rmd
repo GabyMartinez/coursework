@@ -1,8 +1,12 @@
 ---
 title: "MSD Homework 2, Problem 3"
-author: "Your Name (your uni)"
-date: '`r Sys.time()`'
+author: "Gabrielle Martinez (Pace University)"
+date: "`r Sys.time()`"
 output:
+  html_document:
+    toc: yes
+    toc_depth: '3'
+    df_print: paged
   pdf_document:
     toc: yes
     toc_depth: 3
@@ -42,20 +46,34 @@ The full paper can be found [here](https://aidenlab.org/papers/Science.Culturomi
 
 Edit the `01_download_1grams.sh` file to download the `googlebooks-eng-all-1gram-20120701-1.gz` file and the `02_filter_1grams.sh` file to filter the original 1gram file to only lines where the ngram matches a year (output to a file named `year_counts.tsv`).
 
-Then edit the `03_download_totals.sh` file to down the `googlebooks-eng-all-totalcounts-20120701.txt` and  file and the `04_reformat_totals.sh` file to reformat the total counts file to a valid csv (output to a file named `total_counts.csv`). 
+Then edit the `03_download_totals.sh` file to download the `googlebooks-eng-all-totalcounts-20120701.txt` and  file and the `04_reformat_totals.sh` file to reformat the total counts file to a valid csv (output to a file named `total_counts.csv`). 
 
 ## Load the cleaned data
 
 Load in the `year_counts.tsv` and `total_counts.csv` files. Use the `here()` function around the filename to keep things portable.Give the columns of `year_counts.tsv` the names `term`, `year`, `volume`, and `book_count`. Give the columns of `total_counts.csv` the names `year`, `total_volume`, `page_count`, and `book_count`. Note that column order in these files may not match the examples in the documentation.
 
 ```{r load-counts}
+#total_counts <- read.csv("total_counts.csv")
 
+#total_counts <- read.table("total_counts.csv")
+
+#year_counts <- read_tsv(here(year_counts.tsv))
+
+year_count <- read_tsv(here('year_counts.tsv'),col_names = c('term','year','volume','book_count'))
+
+total_counts <- read_csv(here('total_counts.csv'),col_names = c('year','total_volume','page_count','book_count'))
+ 
+#volume = vol of words
 
 ```
 
 ## Your written answer
 
 Add a line below using Rmarkdown's inline syntax to print the total number of lines in each dataframe you've created.
+
+total_counts `r nrow(total_counts)` obs
+
+year_count  `r nrow(year_count)` obs
 
 # Part B
 
@@ -67,6 +85,8 @@ Join the raw year term counts with the total counts and divide to get a proporti
 
 ```{r join-years-and-totals}
 
+inner_join(year_count, total_counts, by=c("year"="year")) %>% 
+  mutate(prop = volume/total_volume) -> proportion
 
 ```
 
@@ -76,11 +96,22 @@ Plot the proportion of mentions for the terms "1883", "1910", and "1950" over ti
 
 ```{r plot-proportion-over-time}
 
+proportion %>% filter(year >= 1850) %>%
+  filter(term == c(1883,1910,1950)) %>% 
+  mutate(term=factor(as.character(term))) %>% 
+  ggplot(aes(x=year, y=prop)) + 
+  geom_line(aes(color = term)) +
+  ylab("frequency") +
+  scale_y_continuous(labels=percent)
+
+      
 ```
 
 ## Your written answer
+> Does version 2 of the NGram data produce similar results to those presented in Michel et al. (2011), which are based on version 1 data?
 
-Write up your answer to Part B here.
+Yes, the results to look very similar to that of the paper's.
+
 
 # Part C
 
@@ -92,8 +123,11 @@ Go to the ngram viewer, enter the terms "1883", "1910", and "1950" and take a sc
 
 ## Your written answer
 
-Add your screenshot for Part C below this line using the `![](figure_filename.png)` syntax and comment on similarities / differences.
-
+Add your screenshot for Part C below this line using the `![](Capture.png)` syntax and comment on similarities / differences.
+ 
+ ![](Capture.PNG)
+ 
+The scale is slightly different for the google ngram viewer but the general shap and size of the lines are very similar.
 
 # Part D
 
@@ -104,6 +138,15 @@ Add your screenshot for Part C below this line using the `![](figure_filename.pn
 Plot the raw counts for the terms "1883", "1910", and "1950" over time from 1850 to 2012. Use the `comma` function from the `scales` package for a readable y axis. The colors for each term should match your last plot, and it's nice if these match the original paper but not strictly necessary.
 
 ```{r plot-raw-mentions-over-time}
+
+year_count %>% filter(year >= 1850) %>%
+  filter(term == c(1883,1910,1950)) %>% 
+  mutate(term=factor(as.character(term))) %>% 
+  ggplot(aes(x=year, y=volume)) + 
+  geom_line(aes(color = term)) +
+  ylab("frequency") +
+  scale_y_continuous(labels=comma)
+
 
 ```
 
@@ -119,11 +162,24 @@ Plot the total counts for each year over time, from 1850 to 2012. Use the `comma
 
 ```{r plot-totals}
 
+total_counts %>%
+  filter(year >= 1850) %>%
+  ggplot(aes(x=year, y=total_volume)) +
+  geom_line() +
+  ylab("frequency") +
+  scale_y_continuous(labels=comma)
+
 ```
 
 ## Your written answer
 
-Write up your answer to Part E here.
+By just looking at the raw counts, you can see that use of the years didn't immediately drop off, never to recover. In fact, in the case of 1883, it seems the use is fairly constant, if low, with a slight uptick. 
+
+For 1910, after the intial drop, there is a rise again right before 1950. The sharp peak of use in 1910 is superseaded in the late 1990s. By the 2000s, the use is nearing 150,000, eclipsing the peak in 1910. 
+
+For 1950, there is sharp rise in 1950 but the usage remains high even with fluctuations. For the most part, usage also superseads the use in the original year. 
+
+When compared to the exponential explosion of words recorded post 1950, these changes seem minisule. So the fairly constant use of 1883 is drowned out because it takes a smaller and smaller share of total words over time. I don't know if that equals forgetting. Perhaps the argument is that the usage should have increased with the increase of total words recorded/produced.  
 
 # Part F
 
@@ -135,6 +191,10 @@ For each year term, find the year where its proportion of mentions peaks (hits i
 
 ```{r compute-peaks}
 
+proportion %>%
+  group_by(term) %>%
+  summarise(peak = max(prop)) -> peaks
+
 ```
 
 ## Compute half-lifes
@@ -142,6 +202,17 @@ For each year term, find the year where its proportion of mentions peaks (hits i
 Now, for each year term, find the minimum number of years it takes for the proportion of mentions to decline from its peak value to half its peak value. Store this in an intermediate data frame.
 
 ```{r compute-half-lifes}
+
+peaks %>%
+  mutate(halflifeprop = peak/2) -> peaks
+
+left_join(peaks, proportion, by=c("term"="term")) %>%
+  filter(year>=1850) %>%
+  group_by(term) %>%
+  filter(prop >= halflifeprop) %>%  #filter(prop >= peak/2)
+  group_by(term) %>%
+  summarise(minyear = max(year)) %>%
+  mutate(halflife = minyear - term) -> halflife
 
 ```
 
@@ -152,11 +223,32 @@ Plot the half-life of each term over time from 1850 to 2012. Each point should r
 
 ```{r plot-half-lifes}
 
+halflife %>% 
+  ggplot(aes(x=term, y=halflife)) +
+  geom_point() +
+  geom_smooth(se=F, color = "grey")
+
+halflife %>% filter(term == c(1883, 1910, 1950)) -> hfl
+
+halflife %>% 
+  ggplot(aes(x=term, y=halflife)) +
+  geom_point(color = "grey") +
+  geom_smooth(se=F, color = "dark blue") +
+  geom_point(data=hfl, aes(x=term,y=halflife, color = term))+
+  xlab("year")
+  
+  
+#geom_point(aes(color=term == c(1883,1910,1950)))
+
+# left_join(proportion, by=c("term" = "term")) %>%
+#  filter(year>=1850, ) %>%
+
 ```
+>Does version 2 of the NGram data produce similar results to those presented in Michel et al. (2011), which are based on version 1 data?
 
 ## Your written answer
 
-Write up your answer to Part F here.
+No, version 2 does not produce similar results to the paper. While the overall trend is still negative, the curve is different and the plot is more scattered.
 
 # Part G
 
@@ -165,6 +257,14 @@ Write up your answer to Part F here.
 ## Your written answer
 
 Write up your answer to Part G here. Include code that shows the years with the smallest and largest half-lifes.
+
+`r halflife %>% select(term, halflife) %>% arrange(desc(halflife)) %>% head(1) `
+
+`r halflife %>% select(term, halflife) %>% arrange(desc(halflife)) %>% tail(1) `
+
+There's a couple of outliers that have far more uses and mentions between 1850 and approx. 1870. I'm guessing those were some eventful times as the the American Civil war lies within that interval. People often cite Civil War battles and strategy and it's significance for ending slavery in the US.
+
+
 
 # Makefile
 
