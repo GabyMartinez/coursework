@@ -195,6 +195,7 @@ proportion %>%
   group_by(term) %>%
   summarise(peak = max(prop)) -> peaks
 
+#  filter(year>=1850) %>%
 ```
 
 ## Compute half-lifes
@@ -209,11 +210,13 @@ peaks %>%
 left_join(peaks, proportion, by=c("term"="term")) %>%
   filter(year>=1850) %>%
   group_by(term) %>%
-  filter(prop >= halflifeprop) %>%  #filter(prop >= peak/2)
+  filter(prop >= halflifeprop) %>% #filter(prop >= peak/2)
   group_by(term) %>%
   summarise(minyear = max(year)) %>%
   mutate(halflife = minyear - term) -> halflife
 
+#  filter(prop == peak) %>% 
+#  mutate(peakyear = year) 
 ```
 
 ## Plot the inset of figure 3a
@@ -228,17 +231,17 @@ halflife %>%
   geom_point() +
   geom_smooth(se=F, color = "grey")
 
-halflife %>% filter(term == c(1883, 1910, 1950)) -> hfl
+#halflife %>% filter(term == 1950) #-> hfl
 
 halflife %>% 
   ggplot(aes(x=term, y=halflife)) +
   geom_point(color = "grey") +
   geom_smooth(se=F, color = "dark blue") +
-  geom_point(data=hfl, aes(x=term,y=halflife, color = term))+
   xlab("year")
-  
-  
-#geom_point(aes(color=term == c(1883,1910,1950)))
+
+#geom_point(data=hfl, aes(x=term,y=halflife, color = term))
+
+# geom_point(aes(color=term == c(1883,1910,1950)))
 
 # left_join(proportion, by=c("term" = "term")) %>%
 #  filter(year>=1850, ) %>%
@@ -248,7 +251,11 @@ halflife %>%
 
 ## Your written answer
 
-No, version 2 does not produce similar results to the paper. While the overall trend is still negative, the curve is different and the plot is more scattered.
+No, version 2 does not produce similar results to the paper. While the overall trend is still negative, the curve is different and the plot is more scattered in the early part of the 1800s. Also, the half-life for 1883 plotted here is 7 years when in the paper its 30 years. It then jumps up to 20 for 1910 with a short fall to 15 for 1950. This goes against the paper's theory that we are forgetting faster as half-lives of years shorten. If anything, the curve seems to be pulled up by some outliers before it flattens out at the end.
+
+`r halflife %>% filter(term == 1883)`
+`r halflife %>% filter(term == 1910)`
+`r halflife %>% filter(term == 1950)`
 
 # Part G
 
@@ -263,7 +270,6 @@ Write up your answer to Part G here. Include code that shows the years with the 
 `r halflife %>% select(term, halflife) %>% arrange(desc(halflife)) %>% tail(1) `
 
 There's a couple of outliers that have far more uses and mentions between 1850 and approx. 1870. I'm guessing those were some eventful times as the the American Civil war lies within that interval. People often cite Civil War battles and strategy and it's significance for ending slavery in the US.
-
 
 
 # Makefile
