@@ -62,6 +62,9 @@ summary(model_weight_height)
 #coef(model_weight_height)
 #model_weight_height$coefficients
 
+tidy(model_weight_height)
+glance(model_weight_height)
+
 body_data %>% group_by(height, weight) %>% summarise(count=n()) %>% ggplot(aes(x=height, y=weight, alpha = count)) + geom_point(color = "blue")
 body_data %>% group_by(height, weight) %>% summarise(count=n()) %>% ggplot(aes(x=height, y=weight)) + geom_point(alpha = .3, color = "blue")
 
