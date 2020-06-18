@@ -1,0 +1,425 @@
+---
+title: "Citibike Trips"
+author: "Gabrielle Martinez (Pace University)"
+date: "6/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(scales)
+library(broom)
+library(modelr)
+library(tidyverse)
+library(lubridate)
+
+theme_set(theme_bw())
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Dataset
+
+Load in the `trips_per_day.tsv` which has one row for each day, the number of trips taken on that day, and the some weather data for the day. `holiday.csv` is a data set with the bank holidays for 2012
+
+```{r load_data}
+trips_per_day <- read_tsv("trips_per_day.tsv")
+
+#trips_per_day <- read_tsv(here("trips_per_day.tsv"))
+
+holiday <- read.csv("holidays.csv", header = F, col.names = c('num', 'date', 'holiday')) 
+
+#clean and format
+
+holiday %>% 
+  mutate(date = as.Date(date)) %>%
+  select(date,holiday)-> holiday
+
+left_join(trips_per_day, holiday, by = c("ymd"="date")) -> trips_per_day
+
+trips_per_day %>% 
+  mutate(israining = prcp >= 0.1) %>%
+  mutate(day_of_week = as.factor(wday(ymd))) %>%
+  mutate(isweekday = day_of_week != 1 & day_of_week != 7) %>%
+  mutate(isholiday = ifelse(!is.na(holiday), 1, 0)) -> trips_per_day
+
+#trips_per_day %>%
+#  mutate(month = )
+#  mutate(season = ifelse(, x, y))
+  
+####
+
+```
+
+trips_per_day has `r nrow(trips_per_day)` observations
+
+
+## Split the data
+
+Split the data into into testing (10%), validation (10%), and training sets (80%). 
+
+```{r split}
+
+set.seed(43)
+
+num_obs = nrow(trips_per_day)
+train_frac = 0.8
+val_frac = 0.1
+
+num_train <- floor(num_obs * train_frac)
+num_validate <- floor(num_obs*val_frac)
+
+
+# randomly sample rows for the training set
+ndx <- sample(1:num_obs, num_train, replace=F)
+
+#training set 80%
+train_trips_per_day <- trips_per_day[ndx, ]
+
+#20%
+split20 <- trips_per_day[-ndx, ]
+
+ndx <- sample(1:73, num_validate, replace=F)
+
+#validation set 10%
+val_trips <- split20[ndx, ]
+
+#testing set 10%
+test_trips <- split20[-ndx, ]
+
+```
+
+Training set has `r nrow(train_trips_per_day)` obs. Validation set has `r nrow(val_trips)` obs. Testing set has `r nrow(test_trips)` obs. Testing set is not to be touched until the very end.
+
+##Model 1: Minimum Temperature 
+
+Can we predict the number to trips in a day using solely the minimum temperature?
+
+Test different polynomial degrees
+
+```{r model1}
+
+# fit a model for each polynomial degree
+K <- 1:8
+train_err <- c()
+validate_err <- c()
+for (k in K) {
+  
+    # fit on the training data
+    model1 <- lm(num_trips ~ poly(tmin, k, raw = T), data = train_trips_per_day)
+    
+    #num_trips = tmin + tmin^2 + ... + tmin^k
+    
+    # RMSE training data
+    train_err[k] <- sqrt(mean((predict(model1, train_trips_per_day) - train_trips_per_day$num_trips)^2))
+
+    # RMSE validation data
+    validate_err[k] <- sqrt(mean((predict(model1, val_trips) - val_trips$num_trips)^2))
+}
+
+#plot RMSE
+
+plot_data <- data.frame(K, train_err, validate_err) %>%
+  gather("split", "error", -K)
+  #pivot_longer(c(-K),"split", "error")
+
+ggplot(plot_data, aes(x=K, y=error, color=split)) +
+  geom_line() +
+  scale_x_continuous(breaks=K) +
+  xlab('Polynomial Degree') +
+  ylab('RMSE')
+
+```
+
+For model 1, the 2rd degree seems to have the smallest gap between the training and vailidation errors. At the 2rd polynomial degreee, the training RMSE is `r train_err[2]` and the validation RMSE is `r validate_err[2]`. However, I'll be using the 3rd degree because it seems to fit the data better, as seen below.
+
+```{r plotmodel1}
+
+model1 <- lm(num_trips ~ poly(tmin, 3, raw = T),train_trips_per_day)
+
+tidy(model1)
+glance(model1)
+
+train_trips_per_day <- train_trips_per_day %>%
+  add_predictions(model1) %>%
+  mutate(split = "train")
+
+val_trips <- val_trips %>%
+  add_predictions(model1) %>%
+  mutate(split = "validate")
+
+plot_data <- bind_rows(train_trips_per_day, val_trips)
+
+ggplot(plot_data, aes(x = tmin, y = num_trips)) +
+  geom_point(aes(color = split)) +
+  geom_line(aes(y = pred)) +
+  xlab('Minimum temperature') +
+  ylab('Daily trips')
+
+
+```
+
+
+## Model 2: Minimum Temperature and Preciptation
+
+```{r model2}
+
+model2 <- lm(num_trips ~ tmin + prcp, train_trips_per_day)
+
+tidy(model2)
+glance(model2)
+
+```
+
+Model 2 predicts the number of trips by taking into account both the minimum and maximum temperature for the day.
+
+The intercept for this model tells us that, should both the minimum temperature and the precipitation/inches of rain be 0, it is predicted that there would be 199 trips that day. That doesn't make a lot of sense, if the temperature were 0 degrees, I wouldn't think there would be anyone biking anywhere. But this is also New York so I'd wager there would still people out biking in 0 degree weather. At least it isn't raining that day.
+
+The tmin coefficient tells us that for every increase in a day's minimum temperature, there is predicted to be an increase of 4873 trips.
+
+The prcp coefficient tells us that for every inch increase of rain that day, there would be a predicted decrease of 9248 trips.
+
+R^2 is 0.75 which means that this model explains 75% of the variation in the number of trips per day
+
+
+```{r valmodel2}
+train_trips_per_day %>%
+  add_predictions(model2) %>%
+  mutate(split = "train") -> plot_data
+
+#RMSE - training set
+train_rmse <- sqrt(mean((plot_data$pred - plot_data$num_trips)^2))
+
+
+val_trips %>%
+  add_predictions(model2) %>%
+  mutate(split="validation") -> val_trips_data
+
+#RMSE = sqrt(mean((yhat-y)^2)) -> validation set
+validate_rmse <- sqrt(mean((val_trips_data$pred - val_trips_data$num_trips)^2))
+
+```
+
+The RMSE is the square root of the average of squared differences between the number of trips predicted and the number of trips actually taken. 
+
+The RMSE for the training set is `r train_rmse` trips.
+For the validation set, RMSE = `r validate_rmse` trips.
+
+```{r plotmodel2}
+#plot_data <- bind_rows(train_trips_per_day, val_trips)
+
+ggplot(train_trips_per_day, aes(x= ymd, y=pred)) +
+  geom_line(aes(y=pred), color = "orange") +
+  geom_point(aes(y=num_trips)) +
+  ylab("number of rides") +
+  xlab("date")
+
+ggplot(plot_data, aes(x=num_trips, y=pred)) +
+  geom_point(aes(color=split)) +
+  geom_smooth()+
+  xlab("observed number of trips")+
+  ylab("predicted number of trips")
+ 
+
+```
+
+>There are some outliers in the precipitation data that should be accounted for in later itterations.
+
+```{r}
+train_trips_per_day %>% 
+  ggplot(aes(x=prcp+.01)) +
+  geom_histogram() +
+  scale_x_log10()
+
+```
+
+>Most of the data is concentrated at 0. Make use of the israining variable.
+
+
+## Experiment 
+
+The following will be a series of experimenting with models to improve upon model 2
+
+```{r}
+model3 <- lm(num_trips ~ poly(tmin, 3, raw=T) + israining*isweekday, train_trips_per_day)
+
+tidy(model3)
+glance(model3)
+
+
+#+ isholiday + day_of_week
+
+```
+Model 3: numoftrips = b0 + b1(tmin) + b2(tmin^2) + b3(tmin^3) + b4(israining) + b5(isweekday) +b6(israining*isweekday)
+
+R^2 is 0.84 so this model explains 84% of the variation in the number of trips per day. 
+
+
+```{r valmodel3}
+
+train_trips_per_day %>%
+  add_predictions(model3) %>%
+  mutate(split = "train") -> train_trips_per_day
+
+#RMSE - training set
+train_rmse <- 
+  sqrt(mean((train_trips_per_day$pred - train_trips_per_day$num_trips)^2))
+
+
+val_trips %>%
+  add_predictions(model3) %>%
+  mutate(split="validation") -> val_trips
+
+#RMSE = sqrt(mean((yhat-y)^2)) -> validation set
+validate_rmse <- 
+  sqrt(mean((val_trips$pred - val_trips$num_trips)^2))
+
+
+```
+
+
+The RMSE for the training set is `r train_rmse` trips.
+For the validation set, RMSE = `r validate_rmse` trips.
+
+
+```{r plotmodel3}
+
+plot_data <- bind_rows(train_trips_per_day, val_trips)
+
+ggplot(plot_data, aes(x = ymd, y = num_trips)) +
+  geom_point() +
+  geom_line(aes(y = pred), color = "pink") +
+  geom_point(aes(y=pred), color = "pink") +
+  xlab('Date') +
+  ylab('Daily trips') +
+  facet_wrap(~isweekday)
+
+ggplot(plot_data, aes(x=num_trips, y=pred)) +
+  geom_point(aes(color=split)) +
+  geom_smooth()+
+  xlab("observed number of trips")+
+  ylab("predicted number of trips")
+
+```
+>False = weekend and True = weekday
+
+There's a strange plateau in the model's predictions at the peak. A good number of observations are above that plateau. The number of rides seem to peak in the summer months with a few exceptions. A very low day in July might just be the 4th of July. It seems the majority of rides are taken during the weekdays - are people using citibikes for their daily commutes? Let's add in holidays to see how that effects our model.
+
+```{r}
+
+model4 <- lm(num_trips ~ poly(tmin, 3, raw=T) + isholiday + israining*isweekday, train_trips_per_day)
+
+tidy(model4)
+glance(model4)
+
+```
+
+
+R^2 is .86 so this model explains 86% of the variation in the number of trips per day. Adjusted for the increase in variables, this model explains ~86% of the variation in output (adjusted R^2).
+
+
+```{r valmodel4}
+train_trips_per_day %>%
+  add_predictions(model4) %>%
+  mutate(split = "train") -> train_trips_per_day
+
+#RMSE - training set
+train_rmse <- 
+  sqrt(mean((train_trips_per_day$pred - train_trips_per_day$num_trips)^2))
+
+
+val_trips %>%
+  add_predictions(model4) %>%
+  mutate(split="validation") -> val_trips
+
+#RMSE = sqrt(mean((yhat-y)^2)) -> validation set
+validate_rmse <- 
+  sqrt(mean((val_trips$pred - val_trips$num_trips)^2))
+
+
+```
+
+The RMSE for the training set is `r train_rmse` trips.
+For the validation set, RMSE = `r validate_rmse` trips.
+
+
+```{r plotmodel4}
+
+plot_data <- bind_rows(train_trips_per_day, val_trips)
+
+ggplot(plot_data, aes(x = ymd, y = num_trips)) +
+  geom_point() +
+  geom_line(aes(y = pred), color = "pink") +
+  geom_point(aes(y=pred), color = "pink") +
+  xlab('Date') +
+  ylab('Daily trips') +
+  facet_wrap(~split)
+
+ggplot(plot_data, aes(x=num_trips, y=pred)) +
+  geom_point(aes(color=split)) +
+  geom_smooth() +
+  xlab("observed number of trips")+
+  ylab("predicted number of trips")
+
+
+```
+That weird plateau is still there though it does do better at predicting the odd low periods. The outlier in early July does seem to be the forth of July. That might be useful if you want to know whether there would be an uptick or not on national holidays. It seems to be the case where the majority of people are using citibikes for daily commutes rather than joy rides, however because the coefficient for holidays is negative. 
+
+
+##Choosing a Model
+
+Let's compare the testing and validation errors
+
+```{r }
+
+model_list <- list(model1, model2, model3, model4)
+train_err <- c()
+validate_err <- c()
+for(model in model_list){
+  
+  #RMSE for training data
+  train_err <- c(train_err, sqrt(mean((predict(model, train_trips_per_day) - train_trips_per_day$num_trips)^2)))
+  
+  #RMSE for validation data
+  validate_err <- c(validate_err, sqrt(mean((predict(model, val_trips) - val_trips$num_trips)^2)))
+
+}
+
+train_err
+validate_err
+models <- seq(1:length(model_list))
+
+plot_data <- 
+  data.frame(models, train_err, validate_err) %>% 
+  gather("split", "error", -models)
+
+plot_data %>%
+  ggplot(aes(x=models, y= error, color = split)) +
+  geom_line() +
+  scale_x_continuous(breaks = models) +
+  xlab("Model") +
+  ylab("RMSE")
+
+```
+
+
+I'll be choosing Model 4 because it has both a small training and validation error - the smallest training error of all the models in fact.
+
+##Saving the best Model
+
+```{r}
+
+```
+
+
+##Final Test
+
+Now we'll be testing our final model on our untouched test set. Let's see how Model 4 performs.
+
+
+
+
+
+
+
+
