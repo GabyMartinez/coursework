@@ -403,11 +403,33 @@ plot_data %>%
 ```
 
 
-I'll be choosing Model 4 because it has both a small training and validation error - the smallest training error of all the models in fact.
+I'll be choosing Model 4 because it has both a small training and validation error - the smallest training error of all my models in fact.
 
 ##Saving the best Model
 
-```{r}
+```{r savingmodel}
+
+trips_per_day <- read_tsv("trips_per_day.tsv")
+
+
+modifiy_trips_data <- function(trips_data){
+  
+  left_join(trips_data, holiday, by = c("ymd"="date")) -> trips_data
+  trips_data %>% 
+    mutate(israining = prcp >= 0.1) %>%
+    mutate(day_of_week = as.factor(wday(ymd))) %>%
+    mutate(isweekday = day_of_week != 1 & day_of_week != 7)%>%
+    mutate(isholiday = ifelse(!is.na(holiday), 1, 0))
+}
+ 
+    
+
+#modifiy_trips_data(trips_per_day) -> trips_per_day
+  
+
+save(modifiy_trips_data, holiday, model4, file='predict_citibike_model.RData')
+
+
 
 ```
 
