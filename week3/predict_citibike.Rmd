@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Load Dataset
 
-Load in the `trips_per_day.tsv` which has one row for each day, the number of trips taken on that day, and the some weather data for the day. `holiday.csv` is a data set with the bank holidays for 2012
+Load in the `trips_per_day.tsv` which has one row for each day, the number of trips taken on that day, and the some weather data for the day. `holiday.csv` is a data set with the US bank holidays between 2012 and 2020.
 
 ```{r load_data}
 trips_per_day <- read_tsv("trips_per_day.tsv")
@@ -91,7 +91,9 @@ test_trips <- split20[-ndx, ]
 
 Training set has `r nrow(train_trips_per_day)` obs. Validation set has `r nrow(val_trips)` obs. Testing set has `r nrow(test_trips)` obs. Testing set is not to be touched until the very end.
 
-##Model 1: Minimum Temperature 
+
+
+## Model 1: Minimum Temperature 
 
 Can we predict the number to trips in a day using solely the minimum temperature?
 
@@ -131,7 +133,7 @@ ggplot(plot_data, aes(x=K, y=error, color=split)) +
 
 ```
 
-For model 1, the 2rd degree seems to have the smallest gap between the training and vailidation errors. At the 2rd polynomial degreee, the training RMSE is `r train_err[2]` and the validation RMSE is `r validate_err[2]`. However, I'll be using the 3rd degree because it seems to fit the data better, as seen below.
+For model 1, the 2nd degree seems to have the smallest gap between the training and vailidation errors. At the 2nd polynomial degreee, the training RMSE is `r train_err[2]` and the validation RMSE is `r validate_err[2]`. However, I'll be using the 3rd degree because it seems to fit the data better, as seen below.
 
 ```{r plotmodel1}
 
@@ -161,6 +163,7 @@ ggplot(plot_data, aes(x = tmin, y = num_trips)) +
 
 
 ## Model 2: Minimum Temperature and Preciptation
+
 
 ```{r model2}
 
@@ -206,7 +209,7 @@ The RMSE for the training set is `r train_rmse` trips.
 For the validation set, RMSE = `r validate_rmse` trips.
 
 ```{r plotmodel2}
-#plot_data <- bind_rows(train_trips_per_day, val_trips)
+plot_data <- bind_rows(train_trips_per_day, val_trips)
 
 ggplot(train_trips_per_day, aes(x= ymd, y=pred)) +
   geom_line(aes(y=pred), color = "orange") +
@@ -301,7 +304,8 @@ ggplot(plot_data, aes(x=num_trips, y=pred)) +
   ylab("predicted number of trips")
 
 ```
->False = weekend and True = weekday
+
+> False = weekend and True = weekday
 
 There's a strange plateau in the model's predictions at the peak. A good number of observations are above that plateau. The number of rides seem to peak in the summer months with a few exceptions. A very low day in July might just be the 4th of July. It seems the majority of rides are taken during the weekdays - are people using citibikes for their daily commutes? Let's add in holidays to see how that effects our model.
 
@@ -365,10 +369,12 @@ ggplot(plot_data, aes(x=num_trips, y=pred)) +
 
 
 ```
+
+
 That weird plateau is still there though it does do better at predicting the odd low periods. The outlier in early July does seem to be the forth of July. That might be useful if you want to know whether there would be an uptick or not on national holidays. It seems to be the case where the majority of people are using citibikes for daily commutes rather than joy rides, however because the coefficient for holidays is negative. 
 
 
-##Choosing a Model
+## Choosing a Model
 
 Let's compare the testing and validation errors
 
@@ -407,7 +413,7 @@ plot_data %>%
 
 I'll be choosing Model 4 because it has both a small training and validation error - the smallest training error of all my models in fact.
 
-##Saving the best Model
+## Saving the best Model
 
 ```{r savingmodel}
 
@@ -422,10 +428,6 @@ modifiy_trips_data <- function(trips_data){
     mutate(isholiday = ifelse(!is.na(holiday), 1, 0))
 }
  
-    
-
-#modifiy_trips_data(trips_per_day) -> trips_per_day
-  
 
 save(modifiy_trips_data, holiday, model4, file='predict_citibike_model.RData')
 
@@ -434,7 +436,7 @@ save(modifiy_trips_data, holiday, model4, file='predict_citibike_model.RData')
 ```
 
 
-##Final Test
+## Final Test
 
 Now we'll be testing our final model on our untouched test set. Let's see how Model 4 performs.
 
@@ -493,7 +495,7 @@ ggplot(plot_data, aes(x=pred, y=num_trips))+
 
 ```
 
-##Key results
+## Key results
 
 + The RMSE for the testing set (`r test_rmse `) is close to the RMSE for the validation set (`r rmse(model4, val_trips)`). 
 
