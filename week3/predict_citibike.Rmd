@@ -296,7 +296,7 @@ ggplot(plot_data, aes(x = ymd, y = num_trips)) +
 
 ggplot(plot_data, aes(x=num_trips, y=pred)) +
   geom_point(aes(color=split)) +
-  geom_smooth()+
+  geom_abline(color = "blue")+
   xlab("observed number of trips")+
   ylab("predicted number of trips")
 
@@ -335,6 +335,8 @@ val_trips %>%
 #RMSE = sqrt(mean((yhat-y)^2)) -> validation set
 validate_rmse <- 
   sqrt(mean((val_trips$pred - val_trips$num_trips)^2))
+ 
+  #rmse(model4, val_trips) #same thing as above, the more you know
 
 
 ```
@@ -357,7 +359,7 @@ ggplot(plot_data, aes(x = ymd, y = num_trips)) +
 
 ggplot(plot_data, aes(x=num_trips, y=pred)) +
   geom_point(aes(color=split)) +
-  geom_smooth() +
+  geom_abline(color="blue") +
   xlab("observed number of trips")+
   ylab("predicted number of trips")
 
@@ -409,8 +411,6 @@ I'll be choosing Model 4 because it has both a small training and validation err
 
 ```{r savingmodel}
 
-trips_per_day <- read_tsv("trips_per_day.tsv")
-
 
 modifiy_trips_data <- function(trips_data){
   
@@ -439,6 +439,65 @@ save(modifiy_trips_data, holiday, model4, file='predict_citibike_model.RData')
 Now we'll be testing our final model on our untouched test set. Let's see how Model 4 performs.
 
 
+```{r finaltest}
+
+test_trips %>%
+  add_predictions(model4) %>%
+  mutate(split="test") -> test_trips
+
+val_trips %>%
+  add_predictions(model4) %>%
+  mutate(split="validation") -> val_trips
+
+train_trips_per_day %>%
+  add_predictions(model4) %>%
+  mutate(split="training") -> train_trips_per_day
+
+test_rmse <- 
+  sqrt(mean((test_trips$pred - test_trips$num_trips)^2))
+
+
+```
+
+
+The RMSE for the testing set is `r test_rmse`. 
+
+Let's plot this:
+
+```{r finalplot}
+
+plot_data <- bind_rows(val_trips,test_trips,train_trips_per_day)
+
+ggplot(plot_data, aes(x=ymd, y=num_trips)) +
+  geom_point() +
+  geom_point(aes(y=pred), color="pink") +
+  geom_line(aes(y=pred), color="pink") +
+  xlab("Date") +
+  ylab("Number of trips")
+
+ggplot(plot_data, aes(x=ymd, y=num_trips)) +
+  geom_point() +
+  geom_point(aes(y=pred), color="pink") +
+  geom_line(aes(y=pred), color="pink") +
+  xlab("Date") +
+  ylab("Number of trips") +
+  facet_wrap(~split)
+
+ggplot(plot_data, aes(x=pred, y=num_trips))+
+  geom_point(aes(color=split)) +
+  geom_abline(color = "orange") +
+  xlab("prediction") +
+  ylab("observed")
+  
+
+
+```
+
+##Key results
+
++ The RMSE for the testing set (`r test_rmse `) is close to the RMSE for the validation set (`r rmse(model4, val_trips)`). 
+
++ On the predicted v. observed graph, the points plot in a diagonal, almost 45 degree angle, which is good. It's close to a 1:1 ratio then.
 
 
 
