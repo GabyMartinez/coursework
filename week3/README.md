@@ -14,7 +14,6 @@ This week covers several assignments on reproducing the results of published res
 
 * Replicate and extend the results of the [Google n-grams "culturomics" paper](https://science.sciencemag.org/content/331/6014/176) using the template [here](ngrams/)
 
-* See final report [here](https://rawcdn.githack.com/GabyMartinez/coursework/f531f77e49e70391eecea599dd4e19717e9531e6/week3/ngrams/05_final_report.html) 
 
 # Day 3
 
