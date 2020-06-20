@@ -309,7 +309,7 @@ ggplot(plot_data, aes(x=num_trips, y=pred)) +
 
 There's a strange plateau in the model's predictions at the peak. A good number of observations are above that plateau. The number of rides seem to peak in the summer months with a few exceptions. A very low day in July might just be the 4th of July. It seems the majority of rides are taken during the weekdays - are people using citibikes for their daily commutes? Let's add in holidays to see how that effects our model.
 
-```{r}
+```{r model4}
 
 model4 <- lm(num_trips ~ poly(tmin, 3, raw=T) + isholiday + israining*isweekday, train_trips_per_day)
 
