@@ -10,3 +10,5 @@ week1/trips.RData
 *.dat
 week3/day1/allbut.pl
 week3/day1/README.html
+week3/ngrams/googlebooks-eng-all-totalcounts-20120701.txt
+week3/predict_citibike/trips2015.RData
