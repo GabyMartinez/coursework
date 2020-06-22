@@ -1,0 +1,206 @@
+---
+title: "Testing CitiBike Predictions"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Let's load the trip data
+```{r}
+load('trips_2015.RData')
+
+# Get rid of ymd and add date
+weather <- 
+  weather %>% 
+  select(-ymd)
+
+weather <- 
+  weather %>% 
+  rename(
+    ymd = date
+  ) 
+
+
+```
+
+Now let's see what trips and weather look like
+```{r}
+trips
+colnames(trips)
+colnames(weather)
+
+trips <- 
+  trips %>%
+  transform(
+    ymd = as.character(ymd)
+  )
+
+weather 
+trips 
+
+trips %>%
+  select(ymd)
+
+```
+Let's calculate num_trips 
+```{r}
+
+trips <- 
+  trips %>%
+  select(ymd) %>%
+  group_by(ymd) %>%
+  summarise(num_trips = n())
+
+trips
+
+
+```
+
+
+Let's create columns to contain what I had for the original working data 
+
+```{r}
+weather
+
+trips_per_day <- 
+  trips %>% 
+  left_join(weather)
+
+trips_per_day %>%
+  transform(
+    tmax = tmax/10, 
+    tmin = tmin/10
+  ) -> trips_per_day
+
+
+
+```
+
+Now joining the holidays data
+Let's import holidays and join that 
+```{r}
+#holidays has some problems
+#holidays <- read_delim("holidays.csv", "\t", 
+#    escape_double = FALSE, col_names = FALSE) 
+
+holidays <- read.csv("holidays.csv", F)
+
+holidays <- 
+  holidays %>%
+  rename(
+    holiday_num = V1, 
+    ymd = V2, 
+    holiday = V3 
+  )
+
+
+holidays <- 
+  holidays %>%
+  mutate(ymd = as.character(ymd))
+
+
+trips_per_day <- 
+  trips_per_day %>% 
+  left_join(holidays, by = "ymd")
+
+# create a column for whether a day is a holiday or not 
+trips_per_day <-
+  trips_per_day %>%
+  mutate(holiday = ifelse(!is.na(holiday), 1, 0))
+
+
+trips_per_day
+
+```
+
+
+
+
+
+```{r}
+
+# now to modify it to include my features
+trips_per_day <-  
+  trips_per_day %>%
+  mutate(month = as.factor(month(ymd)), day_of_week = as.factor(wday(ymd))) %>%
+  mutate(weekend = ifelse(day_of_week == 1 | day_of_week == 7, 1, 0)) %>% 
+  mutate(is_rain = ifelse(prcp > 0.5, 1, 0)) %>%
+  mutate(is_snwd = ifelse(snwd > 5, 1, 0)) %>%
+  mutate(avg_temp = (tmin+tmax)/2)
+
+```
+
+
+Let's see if the data has the features I want 
+```{r}
+trips_per_day
+
+```
+_________________________________________________
+
+## Now to test my model on the data 
+
+Compute the RMSE between the actual and predicted trips for 2015 and compare the results to what you found with cross-validation on the 2014 data.
+
+```{r}
+#model <- lm(num_trips ~ avg_temp + poly(prcp, 3, raw=T) + weekend + is_snwd + holiday, trips_per_day)
+
+load('final_model.RData')
+#use saved model
+
+rmse(model_09, trips_per_day)
+
+
+trips_per_day <- 
+  trips_per_day %>%
+  add_predictions(model_09)  
+
+trips_per_day %>%
+  ggplot(aes(x=pred, y=num_trips)) +
+  geom_point(aes(y=num_trips)) +
+  geom_abline(linetype = "dashed") +
+  xlab("Predicted") +
+  ylab("Actual")
+
+
+summary(model_09)
+```
+The predictions were very bad. 
+The RMSE is 6806.518 and the predicted line is very far away. This has made me sad. 
+The predictions for 2014 had RMSE on the test data to be 3232.411. Which was similar train data and validate data 
+And the actual and predicted line was diagonal linear line through the points which was ideal.
+
+_______________________________________________
+
+## Now waiting to record test results for a teammmate
+
+Gaby's model did really well compared to my model. Her predicted line ran through the data points diagonally. Predictions had a higher RMSE however, but her R-squared value of the model was much better. 
+For her model:
+Multiple R-squared:  0.8628
+For my model:
+Multiple R-squared:  0.7387
+I think this might have caused a large shift in the predicted values.
+
+_______________________________________________
+## Final Thoughts
+
+This was a very insightful experience. Using mainly RMSE to evaluate the model and checking for overfitting, led me to underfit the model by being too careful. As I used precipitation as a polynomial, it could also be that my model have been overfitting. 
+
+Also I should have used to 2013 data, that would have led to better predictions as we would have more data. For now, why my model did so poorly can
+have several explanations. 
+
+Either way, for future model building I have to heed more attention to the value of R-squared as gahter skills and resources to do better feature engineering. 
+
+This was a fun and insightful experience to the biases we hold within ourselves. 
+
+### Teammate's thoughts
+
+Hasanat's model is not at all bad! She just forgot to use the model she saved and instead made a new model with the same variables. I thought her model would do better than mine since she has more variables and I was right. Though our R squares are close enough, Hasanat's RMSE is much smaller, thus her predictions were a lot closer to the reality than mine.
+
+
+
+
+
+
+
+
