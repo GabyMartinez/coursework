@@ -5,4 +5,4 @@ This is the shared repository for Microsoft Research NYC's 2020 *Virtual* Data S
 * [Week 1](week1/): Pre-requisites and background
 * [Week 2](week2/): Core curriculum
 * [Week 3](week3/): Extended assignments
-* [Week 4](week4/): Data replication analysis projects
+* [Week 4](https://github.com/msr-ds3/predicting-the-present-2020-group-4): Data replication analysis projects
